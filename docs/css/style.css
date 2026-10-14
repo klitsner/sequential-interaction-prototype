@@ -1,0 +1,14 @@
+/* Stage from the statement studies: a phone-sized column, centred on wider screens. */
+:root { --bg: #b9b8b3; --stage: #d6d5d1; --fg: #2b2b2a; --dim: #7a7975; color-scheme: light; }
+html, body { height: 100%; }
+body { background: var(--bg); color: var(--fg); margin: 0; overflow: hidden;
+  font: 12px/1.3 ui-monospace, "SF Mono", Menlo, monospace; }
+.stage { position: relative; height: 100%; max-width: 430px; max-height: 932px; margin: 0 auto; background: var(--stage);
+  touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
+@media (min-width: 600px) { body { display: grid; place-items: center; }
+  .stage { width: 390px; height: min(844px, 100%); border-radius: 28px; overflow: hidden; box-shadow: 0 10px 40px rgba(0,0,0,0.15); } }
+canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
+#reset { position: absolute; right: 12px; top: 8px; width: 36px; height: 36px; border-radius: 50%; border: 0;
+  background: transparent; color: var(--dim); font-size: 18px; line-height: 1; cursor: pointer; }
+#reset:focus-visible { outline: 2px solid #aaa; }
+#reset[hidden] { display: none; }

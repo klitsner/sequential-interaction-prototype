@@ -11,7 +11,7 @@ const Pickup = (() => {
     if (S && S.wind) S.wind.off();
     if (S && S.peel) S.peel.off();
     S = { state: 'floor', edge: 'bottom', d: 0, R: 20, u: 0, mouse: null, grabY: 0, dGrab: 0, d0: 0,
-          gustStart: now() + 0.4, windFrom: 'bottom', gust: 0, streaks: [], ripples: [], wind: S && S.wind, peel: S && S.peel,
+          gustStart: now() + 0.4, windFrom: 'bottom', gust: 0, streaks: [], spawn: 0, ripples: [], wind: S && S.wind, peel: S && S.peel,
           done: false, lastT: now() };
   }
   reset();
@@ -47,10 +47,14 @@ const Pickup = (() => {
     S.gust = ga < 0 ? 0 : ga < 0.3 ? easeIO(ga / 0.3) : ga < 0.8 ? 1 : ga < 1.1 ? 1 - easeIO((ga - 0.8) / 0.3) : 0;
     const calm = 1 - S.u;          // the draft dies away as the sheet comes up
     if (S.wind) S.wind.set(250 + S.gust * 600, (0.012 + S.gust * 0.06) * calm, 0.6);
-    if (S.gust > 0.15 && Math.random() < 0.35 * calm) {
+    // streaks: WIND.count per gust, spread over the ~0.95 s the gust is above 0.15 (values from the wind panel)
+    if (S.gust > 0.15) S.spawn += WIND.count / 0.95 * fdt * calm;
+    while (S.spawn >= 1) {
+      S.spawn -= 1;
       const o = origin(), dir = { left: [1, 0], right: [-1, 0], top: [0, 1], bottom: [0, -1] }[S.windFrom];
       const across = dir[0] ? o.y + Math.random() * PH : o.x + Math.random() * PW;
-      S.streaks.push({ dir, across, along: 0, len: 60 + Math.random() * 100, v: 420 + Math.random() * 220, bend: (Math.random() - 0.5) * 24, t });
+      const vary = pct => 1 + (Math.random() * 2 - 1) * pct / 100;
+      S.streaks.push({ dir, across, len: WIND.length * vary(WIND.lengthVar), v: WIND.speed * vary(WIND.speedVar), bend: (Math.random() - 0.5) * 24, t });
     }
 
     const hov = S.state === 'floor' && overPaper(S.mouse);
@@ -87,8 +91,9 @@ const Pickup = (() => {
     S.d = lerp(S.d, dT, kk(k)); S.R = lerp(S.R, RT, kk(k));
   }
 
+  const windRGBA = a => { const c = WIND.color; return `rgba(${parseInt(c.slice(1, 3), 16)},${parseInt(c.slice(3, 5), 16)},${parseInt(c.slice(5, 7), 16)},${a})`; };
   function draw(t) {
-    const dt = 1 / 60, m = easeIO(S.u);
+    const m = easeIO(S.u);
     // grid floor; fades to the plain ground of the next scenes as the sheet is lifted away
     ctx.fillStyle = mixHex(SEQ.GROUND, SEQ.PLAIN, m); ctx.fillRect(0, 0, W, H);
     if (m < 0.999) {
@@ -98,15 +103,18 @@ const Pickup = (() => {
       for (let y = (H / 2) % 40; y < H; y += 40) { ctx.beginPath(); ctx.moveTo(0, y + 0.5); ctx.lineTo(W, y + 0.5); ctx.stroke(); }
       ctx.restore();
     }
-    S.streaks = S.streaks.filter(s => t - s.t < 1.6);
+    const life = WIND.life, ease = WIND_MOTIONS[WIND.motion].f;
+    S.streaks = S.streaks.filter(s => t - s.t < life);
     for (const s of S.streaks) {
-      s.along += s.v * dt; const a = Math.min(1, (t - s.t) * 3) * (1 - (t - s.t) / 1.6) * 0.85;
+      const age = t - s.t;
+      s.along = s.v * life * ease(age / life);        // linear = constant speed, as in study 1
+      const a = Math.min(1, age * 3) * (1 - age / life) * WIND.opacity / 100;
       const [dx, dy] = s.dir, sg = dx || dy;
       const start = sg > 0 ? -60 : (dx ? W : H) + 60;
       const head = start + sg * s.along, tail = head - sg * s.len;
       const P = v => dx ? [v, s.across] : [s.across, v];
-      const g = ctx.createLinearGradient(...P(tail), ...P(head)); g.addColorStop(0, 'rgba(255,255,255,0)'); g.addColorStop(1, `rgba(255,255,255,${a})`);
-      ctx.strokeStyle = g; ctx.lineWidth = 1.5; ctx.lineCap = 'round';
+      const g = ctx.createLinearGradient(...P(tail), ...P(head)); g.addColorStop(0, windRGBA(0)); g.addColorStop(1, windRGBA(a));
+      ctx.strokeStyle = g; ctx.lineWidth = WIND.width; ctx.lineCap = 'round';
       const mm = P((head + tail) / 2), bend = dx ? [0, s.bend] : [s.bend, 0];
       ctx.beginPath(); ctx.moveTo(...P(tail)); ctx.quadraticCurveTo(mm[0] + bend[0], mm[1] + bend[1], ...P(head)); ctx.stroke();
     }

@@ -13,6 +13,7 @@ function restart() {
   cvs.style.cursor = 'default';
 }
 resetBtn.addEventListener('click', restart);
+window.restartSequence = restart;     // the wind panel's "Reset state"
 
 // one set of listeners, routed to the current scene
 cvs.addEventListener('pointermove', e => { if (!isMouse(e)) return; mouse = pos(e); SCENES[idx].move(mouse); });

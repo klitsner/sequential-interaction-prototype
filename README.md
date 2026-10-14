@@ -4,3 +4,5 @@ Codebase for my sequential interaction project in IXD 107-03, working with claud
 ***
 
 **Live site:** https://klitsner.github.io/sequential-interaction-prototype/
+
+***
